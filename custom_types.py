@@ -2,16 +2,16 @@ import numpy as np
 from enum import Enum
 
 class GraphType(Enum):
-    CHAIN = 1
-    COLLIDER = 2
-    TREE = 3
-    BIDIAG = 4
-    JUNGLE = 5
-    FULL = 6
-    RANDOM = 7
+    CHAIN = "chain"
+    COLLIDER = "collider"
+    TREE = "tree"
+    BIDIAG = "bidiag"
+    JUNGLE = "jungle"
+    FULL = "full"
+    RANDOM = "random"
 
-class FunctionType(Enum):
-    LINEAR = 1
-    NONLINEAR = 2
+class FnType(Enum):
+    LINEAR = "linear"
+    NONLINEAR = "nonlinear"
 
 AdjMatrix = np.matrix

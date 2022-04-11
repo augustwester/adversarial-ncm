@@ -22,7 +22,8 @@ class Conditionals(nn.Module):
             order_ = order[dag_idx]
             for node_idx in order_:
                 if node_idx == do_idx:
-                    outputs[dag_idx, :, node_idx] = x[:, node_idx]
+                    #outputs[dag_idx, :, node_idx] = x[:, node_idx]
+                    outputs[dag_idx, :, node_idx] = torch.randn(batch_size,)
                     continue
                 mask = A[dag_idx, :, node_idx]
                 ins = mask * outputs[dag_idx].clone()
