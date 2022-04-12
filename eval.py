@@ -28,7 +28,7 @@ def eval(graph_type, fn_type, num_nodes, batch_size, num_epochs, edge_probabilit
     return g, scm, shd, g_losses, d_losses, p_hist
 
 def save_plot(g, scm, g_losses, d_losses, p_hist, output_dir):
-    fig, ax = plt.subplots(3, 1, figsize=(6,10))
+    fig, ax = plt.subplots(2, 1, figsize=(6,10))
 
     ax[0].set_title("Losses")
     ax[0].plot(g_losses, label="g_loss")
@@ -36,28 +36,33 @@ def save_plot(g, scm, g_losses, d_losses, p_hist, output_dir):
     ax[0].legend()
 
     ax[1].set_title("Edge beliefs")
-    num_nodes = int(np.sqrt(len(p_hist)))
-    for r in range(num_nodes):
-        for c in range(num_nodes):
+    for r in range(g.num_nodes):
+        for c in range(g.num_nodes):
             if r == c: continue
-            if len(p_hist) > 9 and p_hist[r*num_nodes+c][-1] < 0.2: continue
-            ax[1].plot(p_hist[r*num_nodes+c], label=f"x{r+1}->x{c+1}")
+            if len(p_hist) > 9 and p_hist[r*g.num_nodes+c][-1] < 0.2: continue
+            ax[1].plot(p_hist[r*g.num_nodes+c], label=f"x{r+1}->x{c+1}")
     ax[1].legend()
 
+    fig.tight_layout()
+    fig.savefig(output_dir + "plots.png")
+
+    fig, ax = plt.subplots(g.num_nodes, g.num_nodes, figsize=(16,16))
+
     batch_size = 256
-    z = torch.randn(batch_size, num_nodes)
+    z = torch.randn(batch_size, g.num_nodes)
     do = None
 
     X_g, A = g(z, do_idx=do)
     X_g = X_g.detach().numpy()
     X_data = scm.sample(batch_size, do=do)
 
-    ax[2].set_title("Samples")
-    ax[2].scatter(X_g[:,0], X_g[:,1], c="r")
-    ax[2].scatter(X_data[:,0], X_data[:,1], c="b")
+    for i in range(g.num_nodes):
+        for j in range(g.num_nodes):
+            ax[i,j].scatter(X_g[:,i], X_g[:,j], c="r")
+            ax[i,j].scatter(X_data[:,i], X_data[:,j], c="b")
 
     fig.tight_layout()
-    fig.savefig(output_dir + "plots.png")
+    fig.savefig(output_dir + "samples.png")
 
 def save_txt(shd, args, output_dir):
     txt = open(output_dir + "info.txt", "w")

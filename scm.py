@@ -27,14 +27,13 @@ class SCM(object):
 
     def init_nns(self):
         num_hidden = 20
-        sigmoid = lambda x: 1 / (1 + np.exp(-x))
         for i in range(self.num_nodes):
             num_inputs = np.count_nonzero(self.A[:, i])
-            W_1 = randn(num_hidden, num_inputs+1)
+            W_1 = randn(num_hidden, num_inputs)
             b_1 = randn(num_hidden, 1)
             W_2 = randn(1, num_hidden)
             b_2 = randn(1, 1)
-            f = lambda X: sigmoid(W_2 @ sigmoid(W_1 @ X.T + b_1) + b_2)
+            f = lambda X: W_2 @ np.tanh(W_1 @ X.T + b_1) + b_2
             self.fs.append(f)
 
     def init_noise(self):
@@ -50,7 +49,7 @@ class SCM(object):
         X = np.zeros((num_samples, self.num_nodes))
         for i in range(self.num_nodes):
             ins = X[:, np.argwhere(A[:, i])].reshape(num_samples, -1)
-            u = self.us[i](num_samples)
+            u = self.us[i](num_samples) if do == i else randn(num_samples)
             is_root = not ins.any()
             if self.fun_type == FnType.LINEAR:
                 outs = u if is_root else self.fs[i](ins) + u
@@ -58,9 +57,7 @@ class SCM(object):
                 if is_root:
                     outs = u
                 else:
-                    u = u[..., None]
-                    ins = np.concatenate((ins, u), axis=1)
-                    outs = self.fs[i](ins)
+                    outs = self.fs[i](ins) + 0.1*u
             X[:, i] = outs.flatten()
         return X
 
