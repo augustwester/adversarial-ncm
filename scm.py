@@ -52,9 +52,9 @@ class SCM(object):
             u = self.us[i](num_samples) if do == i else randn(num_samples)
             is_root = not ins.any()
             if self.fun_type == FnType.LINEAR:
-                outs = u if is_root else self.fs[i](ins) + u
+                outs = u if is_root or do == i else self.fs[i](ins) + u
             elif self.fun_type == FnType.NONLINEAR:
-                if is_root:
+                if is_root or do == i:
                     outs = u
                 else:
                     outs = self.fs[i](ins) + 0.1*u
