@@ -29,13 +29,10 @@ def train(X, g, d, batch_size, num_epochs, g_lr, d_lr, edge_penalty=0.25, dag_pe
                 y_real = torch.ones(batch_size, 1)
                 if k <= 0.1 * num_epochs:
                     g_loss = bce(preds, y_real)
-                #elif k <= 0.75 * num_epochs:
                 elif k <= 0.5 * num_epochs:
-                    #g_loss = 10*bce(preds, y_real) + 0.5 * A.sum() / g.num_nodes
                     g_loss = bce(preds, y_real) + edge_penalty * A.sum() / g.num_nodes
                 else:
                     m_exp = torch.trace(torch.matrix_exp(g.edge_beliefs.edge_beliefs)) - g.num_nodes
-                    #g_loss = 10*bce(preds, y_real) + 2*m_exp
                     g_loss = bce(preds, y_real) + dag_penalty*m_exp
                 g_loss.backward()
                 g_opt.step()
