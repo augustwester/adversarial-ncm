@@ -19,12 +19,7 @@ def compute_shd(A, A_hat):
     return np.sum(diff) / 2
 
 def eval(graph_type, fn_type, num_nodes, batch_size, num_epochs, g_lr, d_lr, edge_probability=None):
-    #if graph_type is not GraphType.RANDOM:
-    #    A = make_structured_graph(graph_type, num_nodes)
-    #elif args.edge_probability is not None:
-    #    A = make_random_graph(edge_probability, num_nodes)
     A = make_graph(graph_type, num_nodes)
-
     scm = SCM(A, fn_type)
     X = torch.tensor(scm.make_dataset(samples_per_intervention=1000))
     g = Generator(num_nodes, num_dags=1, temperature=0.1)
