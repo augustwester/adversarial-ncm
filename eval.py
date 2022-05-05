@@ -12,7 +12,13 @@ from graph import make_structured_graph, make_random_graph
 from custom_types import GraphType, FnType
 from datetime import datetime
 
-def eval(graph_type, fn_type, num_nodes, batch_size, num_epochs, edge_probability=None):
+def compute_shd(A, A_hat):
+    diff = np.abs(A - A_hat)
+    diff = diff + diff.T
+    diff[diff > 1] = 1
+    return np.sum(diff) / 2
+
+def eval(graph_type, fn_type, num_nodes, batch_size, num_epochs, g_lr, d_lr, edge_probability=None):
     if graph_type is not GraphType.RANDOM:
         A = make_structured_graph(graph_type, num_nodes)
     elif args.edge_probability is not None:
@@ -20,14 +26,22 @@ def eval(graph_type, fn_type, num_nodes, batch_size, num_epochs, edge_probabilit
 
     scm = SCM(A, fn_type)
     X = torch.tensor(scm.make_dataset(samples_per_intervention=1000))
-    g = Generator(num_nodes, num_dags=1, temperature=1)
+    g = Generator(num_nodes, num_dags=1, temperature=0.1)
     d = Discriminator(num_nodes)
 
-    A_pred, g_losses, d_losses, p_hist = train(X, g, d, batch_size, num_epochs)
-    shd = np.count_nonzero(A-A_pred)
+    A_pred, g_losses, d_losses, p_hist = train(X,
+                                               g,
+                                               d,
+                                               batch_size,
+                                               num_epochs,
+                                               g_lr,
+                                               d_lr,
+                                               edge_penalty=0.5,
+                                               dag_penalty=0.5)
+    shd = compute_shd(A, A_pred)
     return g, scm, shd, g_losses, d_losses, p_hist
 
-def save_plot(g, scm, g_losses, d_losses, p_hist, output_dir):
+def save_loss_plot(g_losses, d_losses, p_hist, output_dir):
     fig, ax = plt.subplots(2, 1, figsize=(6,10))
 
     ax[0].set_title("Losses")
@@ -46,23 +60,25 @@ def save_plot(g, scm, g_losses, d_losses, p_hist, output_dir):
     fig.tight_layout()
     fig.savefig(output_dir + "plots.png")
 
-    fig, ax = plt.subplots(g.num_nodes, g.num_nodes, figsize=(16,16))
 
-    batch_size = 256
-    z = torch.randn(batch_size, g.num_nodes)
-    do = None
+def save_samples_plot(g, scm, output_dir):
+    dos = [None] + list(range(g.num_nodes))
+    for do in dos:
+        fig, ax = plt.subplots(g.num_nodes, g.num_nodes, figsize=(16,16))
+        batch_size = 256
+        z = torch.randn(batch_size, g.num_nodes)
 
-    X_g, A = g(z, do_idx=do)
-    X_g = X_g.detach().numpy()
-    X_data = scm.sample(batch_size, do=do)
+        X_g, A = g(z, do_idx=do)
+        X_g = X_g.detach().numpy()
+        X_data = scm.sample(batch_size, do=do)
 
-    for i in range(g.num_nodes):
-        for j in range(g.num_nodes):
-            ax[i,j].scatter(X_g[:,i], X_g[:,j], c="r")
-            ax[i,j].scatter(X_data[:,i], X_data[:,j], c="b")
+        for i in range(g.num_nodes):
+            for j in range(g.num_nodes):
+                ax[i,j].scatter(X_g[:,i], X_g[:,j], c="r")
+                ax[i,j].scatter(X_data[:,i], X_data[:,j], c="b")
 
-    fig.tight_layout()
-    fig.savefig(output_dir + "samples.png")
+        fig.tight_layout()
+        fig.savefig(output_dir + f"do-{do}.png")
 
 def save_txt(shd, args, output_dir):
     txt = open(output_dir + "info.txt", "w")
@@ -73,6 +89,8 @@ def save_txt(shd, args, output_dir):
         Function type: {args.fn_type}
         Batch size: {args.batch_size}
         Number of epochs: {args.num_epochs}
+        Generator learning rate: {args.g_lr}
+        Discriminator learning rate: {args.d_lr}
         SHD: {shd}
         """)
     txt.close()
@@ -84,6 +102,8 @@ parser.add_argument("--fn_type", type=str, required=True)
 parser.add_argument("--edge_probability", type=float, required=False)
 parser.add_argument("--batch_size", type=int, default=256)
 parser.add_argument("--num_epochs", type=int, default=512)
+parser.add_argument("--g_lr", type=float, default=2e-3)
+parser.add_argument("--d_lr", type=float, default=1e-3)
 
 args = parser.parse_args()
 
@@ -97,6 +117,8 @@ stats = eval(graph_type,
              args.num_nodes,
              args.batch_size,
              args.num_epochs,
+             args.g_lr,
+             args.d_lr,
              args.edge_probability)
 g, scm, shd, g_losses, d_losses, p_hist = stats
 
@@ -104,5 +126,6 @@ now_str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 output_dir = f"./results/{now_str}/"
 os.makedirs(output_dir)
 
-save_plot(g, scm, g_losses, d_losses, p_hist, output_dir)
+save_loss_plot(g_losses, d_losses, p_hist, output_dir)
+#save_samples_plot(g, scm, output_dir)
 save_txt(shd, args, output_dir)

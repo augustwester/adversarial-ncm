@@ -12,9 +12,13 @@ class EdgeBeliefs(nn.Module):
 
     def categorical_sample(self, p):
         return (p.cumsum(-1) >= torch.rand(p.shape[:-1])[..., None]).byte().argmax(-1)
+
+    @property
+    def edge_beliefs(self):
+        return torch.sigmoid(self.P.T)
         
     def sample_dags(self, num_dags):
-        P = self.P.unsqueeze(0).repeat(num_dags, 1, 1)
+        P = torch.sigmoid(self.P.unsqueeze(0).repeat(num_dags, 1, 1))
         rem_idxs = torch.arange(self.num_nodes).unsqueeze(0).repeat(num_dags, 1)
         order = torch.empty(num_dags, self.num_nodes).long()
         
