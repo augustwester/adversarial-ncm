@@ -1,6 +1,5 @@
 import numpy as np
 from custom_types import GraphType, AdjMatrix
-from edge_beliefs import EdgeBeliefs
 
 def make_structured_graph(type: GraphType, num_nodes: int) -> AdjMatrix:
     A = np.zeros((num_nodes, num_nodes))
@@ -24,7 +23,9 @@ def make_structured_graph(type: GraphType, num_nodes: int) -> AdjMatrix:
             A[i, i+1:i+3] = 1
     return A
 
-def make_random_graph(edge_probability: int, num_nodes: int):
-    eb = EdgeBeliefs(num_nodes, temperature=1)
-    g, _ = eb.sample_dags(1)
-    return g.detach().numpy()
+def make_random_graph(num_nodes, e):
+    max_edges = num_nodes * (num_nodes - 1) / 2
+    expected_edges = num_nodes * e
+    p = expected_edges / max_edges
+    edges = np.random.choice([0,1], size=(num_nodes, num_nodes), p=[1-p, p])
+    return np.triu(edges, k=1)
