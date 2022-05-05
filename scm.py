@@ -22,7 +22,7 @@ class SCM(object):
             num_inputs = np.count_nonzero(self.A[:, i])
             coeffs = uniform(low=0.5, high=2, size=num_inputs)
             coeffs *= choice([-1, 1], size=num_inputs)
-            fn = lambda X: np.sum(coeffs * X, axis=1)
+            fn = lambda X, coeffs=coeffs: np.sum(coeffs * X, axis=1)
             self.fs.append(fn)
 
     def init_nns(self):
@@ -33,13 +33,13 @@ class SCM(object):
             b_1 = randn(num_hidden, 1)
             W_2 = randn(1, num_hidden)
             b_2 = randn(1, 1)
-            f = lambda X: W_2 @ np.tanh(W_1 @ X.T + b_1) + b_2
+            f = lambda X, W_1=W_1, b_1=b_2, W_2=W_2, b_2=b_2: W_2 @ np.tanh(W_1 @ X.T + b_1) + b_2
             self.fs.append(f)
 
     def init_noise(self):
         for i in range(self.num_nodes):
             var = np.random.uniform(low=1, high=2)
-            u = lambda n: np.random.normal(loc=0, scale=np.sqrt(var), size=n)
+            u = lambda n, var=var: np.random.normal(loc=0, scale=np.sqrt(var), size=n)
             self.us.append(u)
 
     def sample(self, num_samples, do=None):
