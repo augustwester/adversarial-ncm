@@ -22,6 +22,13 @@ def compute_shd(A, A_hat):
     an edge flip is sufficient to recover the true graph.
 
     Code taken from: https://github.com/ElementAI/causal_discovery_toolbox
+
+    Args:
+        A: The first adjacency matrix
+        A_hat: The second adjacency matrix
+
+    Returns:
+        A positive integer
     """
     diff = np.abs(A - A_hat)
     diff = diff + diff.T
@@ -50,7 +57,7 @@ def save_loss_plot(graph_name, g_losses, d_losses, p_hist, output_dir):
     """
     Plot losses of generator (NCM) and discriminator and save to disk.
     """
-    N = np.sqrt(len(p_hist))
+    N = int(np.sqrt(len(p_hist)))
     fig, ax = plt.subplots(2, 1, figsize=(6,10))
 
     ax[0].set_title("Losses")

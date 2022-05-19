@@ -14,5 +14,3 @@ class GraphType(Enum):
 class FnType(Enum):
     LINEAR = "linear"
     NONLINEAR = "nonlinear"
-
-AdjMatrix = np.matrix

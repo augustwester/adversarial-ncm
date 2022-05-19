@@ -1,40 +1,54 @@
-import numpy as np
 import torch
-import torch.nn as nn
+import numpy as np
+from torch import nn
 from edge_beliefs import EdgeBeliefs
-from conditionals import Conditionals
+from ncm import NCM
 
 class Generator(nn.Module):
-    def __init__(self, num_nodes, num_dags, temperature=1):
+    """
+    Wrapper class containing both edge beliefs and NCM
+    """
+    def __init__(self, num_nodes: int, temperature: float):
+        """
+        Initializes a generator
+
+        Args:
+            num_nodes: The number of nodes in the SCM being modeled
+            temperature: The temperature used when sampling DAGs from the edge beliefs
+
+        Returns:
+            An generator object containing an initialized NCM and matrix of edge beliefs
+        """
         super().__init__()
         self.num_nodes = num_nodes
-        self.num_dags = num_dags
         self.edge_beliefs = EdgeBeliefs(num_nodes, temperature)
-        self.conditionals = Conditionals(num_nodes)
-        
-    def forward(self, z, A, order, do_idx=None):
+        self.ncm = NCM(num_nodes)
+
+    def forward(self,
+                Z: torch.Tensor,
+                A: torch.Tensor,
+                order: torch.Tensor,
+                do=None) -> torch.Tensor:
+        """
+        Computes samples from the associated NCM.
+
+        Args:
+            Z: An m x N matrix of noise values sampled from a prior distribution
+            A: An N x N adjacency matrix. Must represent a DAG.
+            order: The topological order in which the values should be computed
+            do: An integer in the range [-1, N-1] specifying the interventional distribution. If None, a random intervention is picked for each sample.
+
+        Returns:
+            An m x N matrix of samples from the NCM
+        """
         N = A.shape[1]
 
-        if do_idx is None:
-            do_idxs = torch.tensor(np.random.choice(list(range(-1, N)), size=len(z)))
+        if do is None:
+            dos = torch.tensor(np.random.choice(list(range(-1, N)), size=len(Z)))
         else:
-            do_idxs = torch.ones(len(z)).long() * do_idx
+            dos = torch.ones(len(Z)).long() * do
 
-        y = self.conditionals(z, A, order, do_idxs)
-        #do = torch.zeros_like(z)
-        do = torch.zeros(z.shape[0], z.shape[1]+1)
-        #do[do_idxs >= 0, do_idxs[do_idxs >= 0]] = 1
-        do[torch.arange(len(do_idxs)), do_idxs] = 1
-        return torch.cat((y, do), axis=1)
-
-    """
-    def forward(self, x, do_idx, A=None, order=None):
-        if A is None and order is None:
-            A, order = self.edge_beliefs.sample_dags(x.size(0))
-        y = self.conditionals(x, A, order, do_idx)
-        y = y.mean(0)
-        do = torch.zeros_like(x)
-        if do_idx is not None:
-            do[:, do_idx] = 1
-        return torch.cat((y, do), axis=1), A
-    """
+        y = self.ncm(Z, A, order, dos)
+        onehot = torch.zeros(Z.shape[0], Z.shape[1]+1)
+        onehot[torch.arange(len(dos)), dos] = 1
+        return torch.cat((y, onehot), axis=1)

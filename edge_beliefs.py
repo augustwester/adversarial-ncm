@@ -20,6 +20,12 @@ class EdgeBeliefs(nn.Module):
         This implementation is significantly faster than the one provided by
         PyTorch, since it does not require the instantiation of a new class
         when probabilities change.
+
+        Args:
+            p: A vector of probabilities for each category. Must sum to 1.
+
+        Returns:
+            The index of the sampled category
         """
         return (p.cumsum(-1) >= torch.rand(p.shape[:-1])[..., None]).byte().argmax(-1)
 
@@ -37,6 +43,13 @@ class EdgeBeliefs(nn.Module):
 
         The implementation follows the two-phase DAG sampling proposed by
         Scherrer et al. (https://arxiv.org/abs/2109.02429)
+
+        Args:
+            num_dags: Number of dags to sample
+
+        Returns:
+            A tensor of size num_dags x N x N containing num_dags adjacency
+            matrices, each representing a samples DAG.
         """
         P = torch.sigmoid(self.P.unsqueeze(0).repeat(num_dags, 1, 1))
         rem_idxs = torch.arange(self.num_nodes).unsqueeze(0).repeat(num_dags, 1)
