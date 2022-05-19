@@ -1,13 +1,13 @@
 import numpy as np
 from numpy.random import randn, uniform, choice, normal
-from custom_types import FnType, AdjMatrix
+from custom_types import FnType
 
 class SCM():
     """
     Class for constructing random linear or nonlinear SCMs obeying a
     predefined causal graph.
     """
-    def __init__(self, A: AdjMatrix, fun_type: FnType):
+    def __init__(self, A: np.ndarray, fun_type: FnType):
         """
         Initializes the SCM.
 
