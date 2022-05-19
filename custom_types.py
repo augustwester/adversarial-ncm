@@ -8,7 +8,8 @@ class GraphType(Enum):
     BIDIAG = "bidiag"
     JUNGLE = "jungle"
     FULL = "full"
-    RANDOM = "random"
+    ER1 = "er1"
+    ER2 = "er2"
 
 class FnType(Enum):
     LINEAR = "linear"

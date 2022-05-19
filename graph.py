@@ -24,9 +24,10 @@ def make_graph(type: GraphType, num_nodes: int) -> AdjMatrix:
             A[i, i+1:i+3] = 1
     elif type is GraphType.FULL:
         return np.triu(np.ones((num_nodes, num_nodes)), 1)
-    elif type is GraphType.RANDOM1 or type is GraphType.RANDOM2:
+    elif type is GraphType.ER1 or type is GraphType.ER2:
         max_edges = num_nodes * (num_nodes - 1) / 2
-        expected_edges = num_nodes if GraphType is GraphType.RANDOM1 else 2*num_nodes
+        expected_edges = num_nodes if GraphType is GraphType.ER1 else 2*num_nodes
+        assert expected_edges <= max_edges, "Expected number of edges cannot exceeed maximum number of edges"
         p = expected_edges / max_edges
         edges = np.random.choice([0,1], size=(num_nodes, num_nodes), p=[1-p, p])
         return np.triu(edges, k=1)

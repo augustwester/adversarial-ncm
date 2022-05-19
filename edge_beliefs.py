@@ -4,20 +4,40 @@ import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 
 class EdgeBeliefs(nn.Module):
+    """
+    Class containing edge beliefs.
+    """
     def __init__(self, num_nodes, temperature):
         super().__init__()
         self.num_nodes = num_nodes
         self.temperature = temperature
-        self.P = Parameter(torch.zeros(num_nodes, num_nodes).fill_diagonal_(-10))
+        self.P = Parameter(torch.zeros(num_nodes, num_nodes).fill_diagonal_(-50))
 
     def categorical_sample(self, p):
+        """
+        Performs categorical sampling.
+
+        This implementation is significantly faster than the one provided by
+        PyTorch, since it does not require the instantiation of a new class
+        when probabilities change.
+        """
         return (p.cumsum(-1) >= torch.rand(p.shape[:-1])[..., None]).byte().argmax(-1)
 
     @property
     def edge_beliefs(self):
+        """
+        Returns edge beliefs in transposed format (row i containing outgoing
+        edges for node i).
+        """
         return torch.sigmoid(self.P.T)
         
     def sample_dags(self, num_dags):
+        """
+        Samples DAGs from the current edge beliefs.
+
+        The implementation follows the two-phase DAG sampling proposed by
+        Scherrer et al. (https://arxiv.org/abs/2109.02429)
+        """
         P = torch.sigmoid(self.P.unsqueeze(0).repeat(num_dags, 1, 1))
         rem_idxs = torch.arange(self.num_nodes).unsqueeze(0).repeat(num_dags, 1)
         order = torch.empty(num_dags, self.num_nodes).long()
