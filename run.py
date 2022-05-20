@@ -154,7 +154,7 @@ def save_txt(shd: int, args: dict, output_dir: str):
         f"""
         Number of nodes: {args.num_nodes}
         Graph structure: {args.structure}
-        Function type: {args.fn_type}
+        Function type: {args.type}
         Batch size: {args.batch_size}
         Number of epochs: {350*args.num_nodes if args.num_epochs is None else args.num_epochs}
         SHD: {shd}
@@ -165,7 +165,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--num_nodes", type=int, required=True)
     parser.add_argument("--structure", type=str, required=True)
-    parser.add_argument("--fn_type", type=str, required=True)
+    parser.add_argument("--type", type=str, required=True)
     parser.add_argument("--batch_size", type=int, default=256)
     parser.add_argument("--num_epochs", type=int, default=None)
 
@@ -173,7 +173,7 @@ if __name__ == "__main__":
     assert args.num_nodes > 1, "Minimum graph cardinality is 2"
 
     graph_type = GraphType(args.structure.lower())
-    fn_type = FnType(args.fn_type.lower())
+    fn_type = FnType(args.type.lower())
 
     stats = run(graph_type,
                 fn_type,
