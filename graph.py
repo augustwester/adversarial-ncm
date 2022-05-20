@@ -36,7 +36,7 @@ def make_graph(graph_type: GraphType, num_nodes: int) -> np.ndarray:
         return np.triu(np.ones((num_nodes, num_nodes)), 1)
     elif graph_type is GraphType.ER1 or graph_type is GraphType.ER2:
         max_edges = num_nodes * (num_nodes - 1) / 2
-        expected_edges = num_nodes if GraphType is GraphType.ER1 else 2*num_nodes
+        expected_edges = num_nodes if graph_type is GraphType.ER1 else 2*num_nodes
         assert expected_edges <= max_edges, "Expected number of edges cannot exceeed maximum number of edges"
         p = expected_edges / max_edges
         edges = np.random.choice([0,1], size=(num_nodes, num_nodes), p=[1-p, p])
