@@ -15,7 +15,7 @@ from datetime import datetime
 
 sns.set_theme()
 
-def compute_shd(A, A_hat):
+def compute_shd(A: np.ndarray, A_hat: np.ndarray) -> int:
     """
     Compute the structual Hamming distance (SHD) between two graphs with
     adjacency matrices A and A_hat. This implementation assigns an SHD of 1 if
@@ -35,13 +35,25 @@ def compute_shd(A, A_hat):
     diff[diff > 1] = 1
     return np.sum(diff) / 2
 
-def run(graph_type, fn_type, num_nodes, batch_size, num_epochs):
+def run(graph_type: GraphType,
+        fn_type: FnType,
+        num_nodes: int,
+        batch_size: int,
+        num_epochs: int) -> (Generator, SCM, list, list, list):
     """
     Evaluate the proposed method on data sampled from an SCM. The SCM is
     constructed based on the specified graph type, function type, and number
     of nodes. The data contains 1000 samples for each distribution.
 
-    Returns the trained NCM, SHD, and a history of losses and edge beliefs.
+    Args:
+        graph_type: The type of graph (e.g. chain or ER-1)
+        fun_type: Specifies whether the functional relationships should be linear or nonlinear
+        num_nodes: The number of nodes in the graph
+        batch_size: The batch size used during training
+        num_epochs: Number of epochs to train for (excluding pretraining)
+
+    Returns:
+        The trained generator, SHD, and a history of losses and edge beliefs.
     """
     A = make_graph(graph_type, num_nodes)
     scm = SCM(A, fn_type)
@@ -53,9 +65,20 @@ def run(graph_type, fn_type, num_nodes, batch_size, num_epochs):
     shd = compute_shd(A, A_pred)
     return g, scm, shd, g_losses, d_losses, p_hist
 
-def save_loss_plot(graph_name, g_losses, d_losses, p_hist, output_dir):
+def save_loss_plot(graph_name: str,
+                   g_losses: list,
+                   d_losses: list,
+                   p_hist: list,
+                   output_dir: str):
     """
     Plot losses of generator (NCM) and discriminator and save to disk.
+
+    Args:
+        graph_name: Name of the graph (used as title for the plot)
+        g_losses: A list of generator losses throughout training
+        d_losses: A list of discriminator losses throughout training
+        p_hist: A list of edge beliefs during training
+        output_dir: The directory to save the plot to
     """
     N = int(np.sqrt(len(p_hist)))
     fig, ax = plt.subplots(2, 1, figsize=(6,10))
@@ -79,7 +102,15 @@ def save_loss_plot(graph_name, g_losses, d_losses, p_hist, output_dir):
     fig.tight_layout()
     fig.savefig(output_dir + "plots.png")
 
-def save_samples_plot(g, scm, output_dir):
+def save_samples_plot(g: Generator, scm: SCM, output_dir: str):
+    """
+    Plot samples from the SCM and samples from the trained NCM for comparison.
+
+    Args:
+        g: The generator (containing the NCM)
+        scm: The SCM on which the generator / NCM was trained
+        output_dir: The directory to save the plot to
+    """
     dos = list(range(-1, g.num_nodes))
 
     for do in dos:
@@ -97,7 +128,7 @@ def save_samples_plot(g, scm, output_dir):
         A = A.repeat(batch_size, 1, 1)
         order = order.repeat(batch_size, 1)
 
-        X_g = g(z, do_idx=do, A=A, order=order)
+        X_g = g(z, A, order, do)
         X_g = X_g.detach().numpy()
         X_data = scm.sample(batch_size, do=do)
 
@@ -109,7 +140,15 @@ def save_samples_plot(g, scm, output_dir):
         fig.tight_layout()
         fig.savefig(output_dir + f"do-{do}.png")
 
-def save_txt(shd, args, output_dir):
+def save_txt(shd: int, args: dict, output_dir: str):
+    """
+    Saves a text file containing a summary of the model / training / result.
+
+    Args:
+        shd: The final SHD after training
+        args: A dictionary of command line arguments from argparse
+        output_dir: The directory to save the file to
+    """
     txt = open(output_dir + "info.txt", "w")
     txt.write(
         f"""

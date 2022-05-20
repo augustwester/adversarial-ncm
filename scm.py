@@ -70,7 +70,7 @@ class SCM():
             u = lambda n, var=var: np.random.normal(loc=0, scale=np.sqrt(var), size=n)
             self.us.append(u)
 
-    def sample(self, num_samples: int, do):
+    def sample(self, num_samples: int, do: int) -> np.ndarray:
         """
         Generates samples from an interventional distribution in the SCM.
 
@@ -99,7 +99,7 @@ class SCM():
             X[:, i] = outs.flatten()
         return X
 
-    def make_dataset(self, samples_per_intervention: int):
+    def make_dataset(self, samples_per_intervention: int) -> np.ndarray:
         """
         Constructs a dataset containing samples from all interventional
         distributions.

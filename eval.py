@@ -11,15 +11,20 @@ from discriminator import Discriminator
 from train import train
 from run import compute_shd, run, save_loss_plot, save_samples_plot, save_txt
 
-def run(graph_type, num_nodes):
+def evaluate(graph_type: GraphType, num_nodes: int):
     """
-    Evaluate the proposed method 10 times on data from SCMs obeying the
+    Evaluate the proposed method 5 times on data from SCMs obeying the
     specified parameters.
 
-    Saves loss plot and edge belief plot to disk along with a text file
-    containing relevant information on the run.
+    Args:
+        graph_type: The type of graph (e.g. chain or ER-1)
+        num_nodes: The number of nodes in the graph
+
+    Returns:
+        No return value. Saves loss plot and edge belief plot to disk along
+        with a text file containing relevant information on the run.
     """
-    container_dir = f"./parallel/{num_nodes}/{graph_type.name}"
+    container_dir = f"./eval/{num_nodes}/{graph_type.name}"
     os.makedirs(container_dir, exist_ok=True)
 
     shds = []
@@ -69,7 +74,7 @@ if __name__ == "__main__":
     for num_nodes in nodes:
         ps = []
         for graph in graphs:
-            p = Process(target=run, args=(graph, num_nodes))
+            p = Process(target=evaluate, args=(graph, num_nodes))
             p.start()
             ps.append(p)
         for p in ps: p.join()

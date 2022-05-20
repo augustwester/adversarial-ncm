@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from torch import nn
+from torch import nn, Tensor
 from edge_beliefs import EdgeBeliefs
 from ncm import NCM
 
@@ -25,10 +25,10 @@ class Generator(nn.Module):
         self.ncm = NCM(num_nodes)
 
     def forward(self,
-                Z: torch.Tensor,
-                A: torch.Tensor,
-                order: torch.Tensor,
-                do=None) -> torch.Tensor:
+                Z: Tensor,
+                A: Tensor,
+                order: Tensor,
+                do=None) -> Tensor:
         """
         Computes samples from the associated NCM.
 

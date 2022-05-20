@@ -1,11 +1,37 @@
 import numpy as np
 import torch
-import torch.nn as nn
 import random
+from torch import nn, Tensor
 from torch.optim import Adam, RMSprop
+from generator import Generator
+from discriminator import Discriminator
 from tqdm import tqdm
 
-def train(X, g, d, batch_size, num_epochs, threshold=0.5):
+def train(X: Tensor,
+          g: Generator,
+          d: Discriminator,
+          batch_size: int,
+          num_epochs: int,
+          num_pretraining_epochs=100,
+          threshold=0.5):
+    """
+    Trains the NCM and matrix of edge beliefs represented by the generator.
+
+    Args:
+        X: Training data from the underlying ground truth SCM
+        g: Generator containing the NCM and associated edge beliefs
+        d: Discriminator network
+        batch_size: The batch size used during training
+        num_epochs: Number of epochs to train for (excluding pretraining)
+        num_pretraining_epochs: Number of epochs for pretraining the model
+        threshold: The threshold value by which an edge is included in the final prediction
+
+    Returns:
+        The predicted adjacency matrix, a list of recorded losses for the
+        generator and discriminator, and a list of edge beliefs recorded
+        throughout training.
+    """
+
     g_opt = RMSprop(g.parameters(), lr=1e-3)
     d_opt = RMSprop(d.parameters(), lr=1e-3)
     bce = nn.BCELoss()
@@ -26,9 +52,6 @@ def train(X, g, d, batch_size, num_epochs, threshold=0.5):
             g_opt.zero_grad()
             z = torch.rand(bs, N)
             A, order = g.edge_beliefs.sample_dags(bs)
-            #A, order = g.edge_beliefs.sample_dags(1)
-            #A = A.repeat(batch_size, 1, 1)
-            #order = order.repeat(batch_size, 1)
             X_g = g(z, A, order, do=do)
             preds = d(X_g)
             y_real = torch.ones(bs, 1)
@@ -56,7 +79,7 @@ def train(X, g, d, batch_size, num_epochs, threshold=0.5):
 
     print("Pretraining...")
     X_data = X[X[:,-1] == 1]
-    for _ in (_ := tqdm(range(100))):
+    for _ in (_ := tqdm(range(num_pretraining_epochs))):
         run_epoch(X_data, lambda_e=0, lambda_dag=0, do=-1, update_edge_beliefs=False)
 
     print("Training...")
@@ -76,5 +99,5 @@ def train(X, g, d, batch_size, num_epochs, threshold=0.5):
             print(np.around(eb, decimals=3))
 
     P = torch.sigmoid(g.edge_beliefs.P.T).detach().numpy()
-    A_pred = P > threshold
-    return A_pred, g_losses, d_losses, P_hist
+    A_hat = P > threshold
+    return A_hat, g_losses, d_losses, P_hist

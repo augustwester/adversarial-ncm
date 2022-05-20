@@ -1,5 +1,5 @@
 import torch
-from torch import nn
+from torch import nn, Tensor
 from torch.nn import functional as F
 from torch.nn import Linear
 
@@ -7,7 +7,7 @@ class Discriminator(nn.Module):
     """
     Class implementing the discriminator
     """
-    def __init__(self, num_nodes):
+    def __init__(self, num_nodes: int):
         """
         Initializes a discriminator with two 128-unit hidden layers.
 
@@ -22,7 +22,7 @@ class Discriminator(nn.Module):
         self.linear2 = Linear(128, 128)
         self.linear3 = Linear(128, 1)
     
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         """
         Computes the output of the discriminator.
 

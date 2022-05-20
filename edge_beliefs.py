@@ -1,19 +1,20 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch import Tensor
 from torch.nn.parameter import Parameter
 
 class EdgeBeliefs(nn.Module):
     """
     Class containing edge beliefs.
     """
-    def __init__(self, num_nodes, temperature):
+    def __init__(self, num_nodes: int, temperature: float):
         super().__init__()
         self.num_nodes = num_nodes
         self.temperature = temperature
         self.P = Parameter(torch.zeros(num_nodes, num_nodes).fill_diagonal_(-50))
 
-    def categorical_sample(self, p):
+    def categorical_sample(self, p: Tensor) -> Tensor:
         """
         Performs categorical sampling.
 
@@ -30,14 +31,14 @@ class EdgeBeliefs(nn.Module):
         return (p.cumsum(-1) >= torch.rand(p.shape[:-1])[..., None]).byte().argmax(-1)
 
     @property
-    def edge_beliefs(self):
+    def edge_beliefs(self) -> Tensor:
         """
         Returns edge beliefs in transposed format (row i containing outgoing
         edges for node i).
         """
         return torch.sigmoid(self.P.T)
         
-    def sample_dags(self, num_dags):
+    def sample_dags(self, num_dags: int) -> Tensor:
         """
         Samples DAGs from the current edge beliefs.
 
