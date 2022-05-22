@@ -42,7 +42,6 @@ class NCM(nn.Module):
         outputs = torch.zeros_like(Z)
         num_interventions = (do != -1).count_nonzero()
         ones = torch.ones(num_interventions)
-        #u = torch.normal(mean=2*ones, std=ones)
         u = torch.normal(mean=0*ones, std=ones)
         outputs[do != -1, do[do != -1]] = u
 
