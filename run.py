@@ -60,7 +60,7 @@ def run(graph_type: GraphType,
     X = torch.tensor(scm.make_dataset(samples_per_intervention=1000))
     g = Generator(num_nodes, temperature=0.1)
     d = Discriminator(num_nodes)
-    num_epochs = num_nodes*350 if num_epochs is None else num_epochs
+    num_epochs = 500 if num_epochs is None else num_epochs
     A_pred, g_losses, d_losses, p_hist = train(X, g, d, batch_size, num_epochs)
     shd = compute_shd(A, A_pred)
     return g, scm, shd, g_losses, d_losses, p_hist
