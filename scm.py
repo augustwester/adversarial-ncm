@@ -122,4 +122,5 @@ class SCM():
             onehot[:, do] = 1
             X_do = np.concatenate((X_do, onehot), axis=1)
             X = np.concatenate((X, X_do))
+        np.random.shuffle(X)
         return X
