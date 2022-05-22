@@ -10,7 +10,7 @@ python3 run.py --structure CHAIN --type LINEAR --num_nodes 4
 
 This runs the model on a dataset constructed by a randomly generated **structural causal model (SCM)** with a chain graph structure, four nodes, and linear functional relationships. These parameters can be adjusted as follows:
 
-* `structure`: `CHAIN`, `COLLIDER`, `BIDIAG`, `TREE`, `JUNGLE`, `FULL`, `ER-1`, `ER-2`
+* `structure`: `CHAIN`, `COLLIDER`, `BIDIAG`, `TREE`, `JUNGLE`, `FULL`, `ER1`, `ER2`
 * `type`: `LINEAR`, `NONLINEAR`
 * `num_nodes`: Any integer greater than or equal to 2
 
