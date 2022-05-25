@@ -5,7 +5,7 @@ The code contains an implementation of the causal discovery technique proposed a
 The model can be run from the command line like so:
 
 ```
-python3 run.py --structure CHAIN --type LINEAR --num_nodes 4
+python3 run.py --structure CHAIN --num_nodes 4 --type LINEAR
 ```
 
 This runs the model on a dataset constructed by a randomly generated **structural causal model (SCM)** with a chain graph structure, four nodes, and linear functional relationships. These parameters can be adjusted as follows:
