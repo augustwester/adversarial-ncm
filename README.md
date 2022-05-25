@@ -13,5 +13,7 @@ This runs the model on a dataset constructed by a randomly generated **structura
 * `structure`: `CHAIN`, `COLLIDER`, `BIDIAG`, `TREE`, `JUNGLE`, `FULL`, `ER1`, `ER2`
 * `type`: `LINEAR`, `NONLINEAR`
 * `num_nodes`: Any integer greater than or equal to 2
+* `batch_size`: The batch size used during training. Default: `256`
+* `num_epochs`: The number of epochs to train for. Default: `max(500, 100*num_nodes)`
 
 Once the model has been trained, a directory containing relevant plots and a summary will be saved to disk.
