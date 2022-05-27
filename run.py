@@ -43,7 +43,7 @@ def run(graph_type: GraphType,
     """
     Evaluate the proposed method on data sampled from an SCM. The SCM is
     constructed based on the specified graph type, function type, and number
-    of nodes. The data contains 1000 samples for each distribution.
+    of nodes. The dataset contains 1000 samples for each distribution.
 
     Args:
         graph_type: The type of graph (e.g. chain or ER-1)
@@ -57,11 +57,11 @@ def run(graph_type: GraphType,
     """
     A = make_graph(graph_type, num_nodes)
     scm = SCM(A, fn_type)
-    X = torch.tensor(scm.make_dataset(samples_per_intervention=1000))
+    X = torch.tensor(scm.make_dataset(samples_per_intervention=500))
     g = Generator(num_nodes, temperature=0.1)
     d = Discriminator(num_nodes)
-    num_epochs = 500 if num_epochs is None else num_epochs
-    A_pred, g_losses, d_losses, p_hist = train(X, g, d, batch_size, num_epochs)
+    num_epochs = max(500, 100*num_nodes) if num_epochs is None else num_epochs
+    A_pred, g_losses, d_losses, p_hist = train(X, g, d, batch_size, num_epochs, threshold=0.2)
     shd = compute_shd(A, A_pred)
     return g, scm, shd, g_losses, d_losses, p_hist
 
@@ -118,11 +118,13 @@ def save_samples_plot(g: Generator, scm: SCM, output_dir: str):
         batch_size = 100
         z = torch.rand(batch_size, g.num_nodes)
 
-        A = (g.edge_beliefs.P.T > 0.6).int()
+        # Ugly, horrible way of sampling the predicted graph
+        threshold = 0.2
+        A = (g.edge_beliefs.P.T > threshold).int()
         while True:
             A_, order = g.edge_beliefs.sample_dags(1)
             A_ = A_[0]
-            A_ = (A > 0.6).int()
+            A_ = (A > threshold).int()
             if (A == A_).all().item(): break
 
         A = A.repeat(batch_size, 1, 1)
@@ -156,7 +158,7 @@ def save_txt(shd: int, args: dict, output_dir: str):
         Graph structure: {args.structure}
         Function type: {args.type}
         Batch size: {args.batch_size}
-        Number of epochs: {350*args.num_nodes if args.num_epochs is None else args.num_epochs}
+        Number of epochs: {max(500, 100*args.num_nodes) if args.num_epochs is None else args.num_epochs}
         SHD: {shd}
         """)
     txt.close()
@@ -187,6 +189,6 @@ if __name__ == "__main__":
     os.makedirs(output_dir)
 
     graph_name = graph_type.name.lower() + str(args.num_nodes)
+    save_txt(shd, args, output_dir)
     save_loss_plot(graph_name, g_losses, d_losses, p_hist, output_dir)
     save_samples_plot(g, scm, output_dir)
-    save_txt(shd, args, output_dir)
