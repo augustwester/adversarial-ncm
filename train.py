@@ -12,6 +12,7 @@ def train(X: Tensor,
           d: Discriminator,
           batch_size: int,
           num_epochs: int,
+          early_stopping=True,
           threshold=0.4):
     """
     Trains the NCM and matrix of edge beliefs represented by the generator.
@@ -21,7 +22,8 @@ def train(X: Tensor,
         g: Generator containing the NCM and associated edge beliefs
         d: Discriminator network
         batch_size: The batch size used during training
-        num_epochs: Number of epochs to train for (excluding pretraining)
+        num_epochs: Number of epochs to train for
+        early_stopping: Whether or not to stop training once convergence is detected
         threshold: The threshold value by which an edge is included in the final prediction
 
     Returns:
@@ -39,7 +41,7 @@ def train(X: Tensor,
     P_hist = [[] for _ in range(N**2)]
     g_losses, d_losses = [], []
 
-    def run_epoch(X, lambda_e, lambda_dag, g_opt, d_opt, do=None, update_ncm=True, update_edge_beliefs=True):
+    def run_epoch(X, lambda_e, lambda_dag, g_opt, d_opt, do=None):
         X = X[torch.randperm(len(X))]
         num_batches = len(X) // batch_size
         batch_sizes = [batch_size for _ in range(num_batches)]
@@ -74,14 +76,17 @@ def train(X: Tensor,
             d_loss = bce(preds, y)
             d_loss.backward()
             d_opt.step()
+            
+            g_losses.append(g_loss.item())
+            d_losses.append(d_loss.item())
 
     for i in (_ := tqdm(range(num_epochs))):
-        progress = i / num_epochs
+        progress = (i+1) / num_epochs
         lambda_e = max(0.1 - (progress * 0.1), 0.01)
         lambda_dag = 0.1*progress
 
-        run_epoch(X, 0, 0, g_opt, d_opt, do=None, update_edge_beliefs=False)
-        run_epoch(X, lambda_e, lambda_dag, e_opt, d_opt, do=None, update_ncm=False)
+        run_epoch(X, 0, 0, g_opt, d_opt)
+        run_epoch(X, lambda_e, lambda_dag, e_opt, d_opt)
         scheduler.step()
 
         for r in range(N):
@@ -89,11 +94,12 @@ def train(X: Tensor,
                 belief = torch.sigmoid(g.edge_beliefs.P.T[r,c]).item()
                 P_hist[r*N+c].append(belief)
 
-        A = g.edge_beliefs.edge_beliefs
-        num_pos = len(A[A > 0.4])
-        num_neg = len(A[A < 0.001])
-        if num_neg > N and num_pos+num_neg == N**2:
-            break
+        if early_stopping:
+            A = g.edge_beliefs.edge_beliefs
+            num_pos = len(A[A > threshold])
+            num_neg = len(A[A < 0.01])
+            if num_neg > N and num_pos+num_neg == N**2:
+                break
 
     P = torch.sigmoid(g.edge_beliefs.P.T).detach().numpy()
     A_hat = P > threshold
