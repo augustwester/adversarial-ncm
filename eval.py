@@ -1,4 +1,5 @@
 import os
+import argparse
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,14 +12,16 @@ from discriminator import Discriminator
 from train import train
 from run import compute_shd, run, save_loss_plot, save_samples_plot, save_txt
 
-def evaluate(graph_type: GraphType, num_nodes: int):
+def evaluate(graph_type: GraphType, fn_type: FnType, num_nodes: int, batch_size: int):
     """
     Evaluate the proposed method 5 times on data from SCMs obeying the
     specified parameters.
 
     Args:
         graph_type: The type of graph (e.g. chain or ER-1)
+        fn_type: Specifies whether the functional relationships should be linear or nonlinear
         num_nodes: The number of nodes in the graph
+        batch_size: The batch size used during training
 
     Returns:
         No return value. Saves loss plot and edge belief plot to disk along
@@ -30,10 +33,10 @@ def evaluate(graph_type: GraphType, num_nodes: int):
     shds = []
     for i in range(5):
         stats = run(graph_type,
-                    FnType.LINEAR,
+                    fn_type,
                     num_nodes,
-                    batch_size=256,
-                    num_epochs=350*num_nodes)
+                    batch_size=batch_size,
+                    num_epochs=None)
         g, scm, shd, g_losses, d_losses, p_hist = stats
         shds.append(shd)
         output_dir = "/".join([container_dir, str(i+1)]) + "/"
@@ -62,19 +65,26 @@ def evaluate(graph_type: GraphType, num_nodes: int):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--batch_size", type=int, default=256)
+    parser.add_argument("--type", type=str, required=True)
+
+    args = parser.parse_args()
+    fn_type = FnType(args.type.lower())
+    batch_size = args.batch_size
+
     graphs = [GraphType.CHAIN,
               GraphType.COLLIDER,
               GraphType.BIDIAG,
               GraphType.TREE,
               GraphType.JUNGLE,
+              GraphType.ER1,
+              GraphType.ER2,
               GraphType.FULL]
     #nodes = [4, 6, 8, 10]
-    nodes = [6, 8]
+    nodes = [6,8,10]
 
     for num_nodes in nodes:
-        ps = []
-        for graph in graphs:
-            p = Process(target=evaluate, args=(graph, num_nodes))
-            p.start()
-            ps.append(p)
+        ps = [Process(target=evaluate, args=(graph, fn_type, num_nodes, batch_size)) for graph in graphs]
+        for p in ps: p.start()
         for p in ps: p.join()
