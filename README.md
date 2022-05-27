@@ -5,7 +5,7 @@ The code contains an implementation of the causal discovery technique proposed a
 The model can be run from the command line like so:
 
 ```
-python3 run.py --structure CHAIN --type LINEAR --num_nodes 4
+python3 run.py --structure CHAIN --num_nodes 4 --type LINEAR
 ```
 
 This runs the model on a dataset constructed by a randomly generated **structural causal model (SCM)** with a chain graph structure, four nodes, and linear functional relationships. These parameters can be adjusted as follows:
@@ -13,5 +13,7 @@ This runs the model on a dataset constructed by a randomly generated **structura
 * `structure`: `CHAIN`, `COLLIDER`, `BIDIAG`, `TREE`, `JUNGLE`, `FULL`, `ER1`, `ER2`
 * `type`: `LINEAR`, `NONLINEAR`
 * `num_nodes`: Any integer greater than or equal to 2
+* `batch_size`: The batch size used during training. Default: `256`
+* `num_epochs`: The number of epochs to train for. Default: `max(500, 100*num_nodes)`
 
-Once the model has been trained, a folder containing relevant plots and a summary will be saved to disk.
+Once the model has been trained, a directory containing relevant plots and a summary will be saved to disk.
