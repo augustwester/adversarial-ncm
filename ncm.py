@@ -8,12 +8,14 @@ class NCM(nn.Module):
 
     See Xia et al. (2021): https://arxiv.org/abs/2107.00793
     """
-    def __init__(self, num_nodes: int):
+    def __init__(self, num_nodes: int, means: Tensor, stds: Tensor):
         """
         Initializes the NCM.
 
         Args:
             num_nodes: The number of nodes in the NCM
+            means: Tensor of means of intervention values for each variable in the normalized dataset
+            stds: Tensor of standard deviations of intervention values for each variable in the normalized dataset
 
         Returns:
             An initialized NCM
@@ -25,6 +27,7 @@ class NCM(nn.Module):
             mlp = Sequential(Linear(num_nodes+1, 32), LeakyReLU(), Linear(32, 1))
             self.mlps.append(mlp)
         self.mlps = ModuleList(self.mlps)
+        self.means, self.stds = means, stds
 
     def forward(self, Z: Tensor, A: Tensor, order: Tensor, do: Tensor) -> Tensor:
         """
@@ -42,7 +45,9 @@ class NCM(nn.Module):
         outputs = torch.zeros_like(Z)
         num_interventions = (do != -1).count_nonzero()
         ones = torch.ones(num_interventions)
-        u = torch.normal(mean=2*ones, std=ones)
+        means = self.means[do[do != -1]]
+        stds = self.stds[do[do != -1]]
+        u = torch.normal(mean=means, std=stds)
         outputs[do != -1, do[do != -1]] = u
 
         for i in range(self.num_nodes):

@@ -8,12 +8,14 @@ class Generator(nn.Module):
     """
     Wrapper class containing both edge beliefs and NCM
     """
-    def __init__(self, num_nodes: int, temperature: float):
+    def __init__(self, num_nodes: int, means: Tensor, stds: Tensor, temperature: float):
         """
         Initializes a generator
 
         Args:
             num_nodes: The number of nodes in the SCM being modeled
+            means: Tensor of means of intervention values for each variable in the normalized dataset
+            stds: Tensor of standard deviations of intervention values for each variable in the normalized dataset
             temperature: The temperature used when sampling DAGs from the edge beliefs
 
         Returns:
@@ -22,7 +24,7 @@ class Generator(nn.Module):
         super().__init__()
         self.num_nodes = num_nodes
         self.edge_beliefs = EdgeBeliefs(num_nodes, temperature)
-        self.ncm = NCM(num_nodes)
+        self.ncm = NCM(num_nodes, means, stds)
 
     def forward(self,
                 Z: Tensor,
