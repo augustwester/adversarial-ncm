@@ -39,11 +39,12 @@ def run(graph_type: GraphType,
         fn_type: FnType,
         num_nodes: int,
         batch_size: int,
-        num_epochs: int) -> (Generator, SCM, list, list, list):
+        num_epochs: int,
+        verbose: bool) -> (Generator, SCM, list, list, list):
     """
     Evaluate the proposed method on data sampled from an SCM. The SCM is
     constructed based on the specified graph type, function type, and number
-    of nodes. The dataset contains 1000 samples for each distribution.
+    of nodes. The dataset contains 500 samples for each distribution.
 
     Args:
         graph_type: The type of graph (e.g. chain or ER-1)
@@ -51,21 +52,35 @@ def run(graph_type: GraphType,
         num_nodes: The number of nodes in the graph
         batch_size: The batch size used during training
         num_epochs: Number of epochs to train for (excluding pretraining)
+        verbose: If set to True, the current matrix of edge beliefs will be printed every 10 epochs. Default: False.
 
     Returns:
         The trained generator, SHD, and a history of losses and edge beliefs.
     """
     A = make_graph(graph_type, num_nodes)
     scm = SCM(A, fn_type)
-    X = torch.tensor(scm.make_dataset(samples_per_intervention=500))
-    g = Generator(num_nodes, temperature=0.1)
+    X, means, stds = scm.make_dataset(samples_per_intervention=500)
+
+    X = torch.tensor(X)
+    means = torch.tensor(means).float()
+    stds = torch.tensor(stds).float()
+
+    g = Generator(num_nodes, means, stds, temperature=0.1)
     d = Discriminator(num_nodes)
     num_epochs = max(500, 100*num_nodes) if num_epochs is None else num_epochs
-    A_pred, g_losses, d_losses, p_hist = train(X, g, d, batch_size, num_epochs, threshold=0.2)
+    weight_decay = 0 if fn_type is FnType.LINEAR else 1e-4
+    A_pred, g_losses, d_losses, p_hist = train(X,
+                                               g,
+                                               d,
+                                               batch_size,
+                                               num_epochs,
+                                               threshold=0.2,
+                                               weight_decay=weight_decay,
+                                               verbose=verbose)
     shd = compute_shd(A, A_pred)
-    return g, scm, shd, g_losses, d_losses, p_hist
+    return g, scm, shd, g_losses, d_losses, p_hist, X.numpy()
 
-def save_loss_plot(graph_name: str,
+def save_loss_plot(graph_type: GraphType,
                    g_losses: list,
                    d_losses: list,
                    p_hist: list,
@@ -81,6 +96,7 @@ def save_loss_plot(graph_name: str,
         output_dir: The directory to save the plot to
     """
     N = int(np.sqrt(len(p_hist)))
+    graph_name = graph_type.name.lower() + str(N)
     fig, ax = plt.subplots(2, 1, figsize=(6,10))
 
     ax[0].set_title("Losses")
@@ -92,17 +108,17 @@ def save_loss_plot(graph_name: str,
     ax[1].set_xlabel("Epochs")
     ax[1].set_ylabel(r"$\sigma(\gamma_{ij})$")
 
+    A = make_graph(graph_type, N)
     for r in range(N):
         for c in range(N):
-            if r == c: continue
-            if len(p_hist) > 9 and p_hist[r*N+c][-1] < 0.2: continue
+            if r == c or A[r,c] == 0: continue
             ax[1].plot(p_hist[r*N+c], label=f"x{r+1}->x{c+1}")
     ax[1].legend()
 
     fig.tight_layout()
     fig.savefig(output_dir + "plots.png")
 
-def save_samples_plot(g: Generator, scm: SCM, output_dir: str):
+def save_samples_plot(g: Generator, X: np.ndarray, output_dir: str):
     """
     Plot samples from the SCM and samples from the trained NCM for comparison.
 
@@ -118,7 +134,8 @@ def save_samples_plot(g: Generator, scm: SCM, output_dir: str):
         batch_size = 100
         z = torch.rand(batch_size, g.num_nodes)
 
-        # Ugly, horrible way of sampling the predicted graph
+        # Ugly, horrible way of sampling the predicted graph. We do it this way
+        # so we don't need to compute the topological order manually.
         threshold = 0.2
         A = (g.edge_beliefs.P.T > threshold).int()
         while True:
@@ -132,12 +149,12 @@ def save_samples_plot(g: Generator, scm: SCM, output_dir: str):
 
         X_g = g(z, A, order, do)
         X_g = X_g.detach().numpy()
-        X_data = scm.sample(batch_size, do=do)
+        X_data = X[X[:, g.num_nodes+do] == 1] if do >= 0 else X[X[:, -1] == 1]
 
         for i in range(g.num_nodes):
             for j in range(g.num_nodes):
                 ax[i,j].scatter(X_g[:,i], X_g[:,j], c="r")
-                ax[i,j].scatter(X_data[:,i], X_data[:,j], c="b")
+                ax[i,j].scatter(X_data[:batch_size,i], X_data[:batch_size,j], c="b")
 
         fig.tight_layout()
         fig.savefig(output_dir + f"do-{do}.png")
@@ -170,6 +187,7 @@ if __name__ == "__main__":
     parser.add_argument("--type", type=str, required=True)
     parser.add_argument("--batch_size", type=int, default=256)
     parser.add_argument("--num_epochs", type=int, default=None)
+    parser.add_argument("--verbose", type=bool, default=False)
 
     args = parser.parse_args()
     assert args.num_nodes > 1, "Minimum graph cardinality is 2"
@@ -181,14 +199,14 @@ if __name__ == "__main__":
                 fn_type,
                 args.num_nodes,
                 args.batch_size,
-                args.num_epochs)
-    g, scm, shd, g_losses, d_losses, p_hist = stats
+                args.num_epochs,
+                args.verbose)
+    g, scm, shd, g_losses, d_losses, p_hist, X = stats
 
     now_str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     output_dir = f"./results/{now_str}/"
     os.makedirs(output_dir)
 
-    graph_name = graph_type.name.lower() + str(args.num_nodes)
     save_txt(shd, args, output_dir)
-    save_loss_plot(graph_name, g_losses, d_losses, p_hist, output_dir)
-    save_samples_plot(g, scm, output_dir)
+    save_loss_plot(graph_type, g_losses, d_losses, p_hist, output_dir)
+    save_samples_plot(g, X, output_dir)
