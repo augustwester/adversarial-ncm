@@ -37,7 +37,7 @@ def train(X: Tensor,
     """
     e_opt = RMSprop(g.edge_beliefs.parameters(), lr=5e-3)
     n_opt = RMSprop(g.ncm.parameters(), lr=1e-3, weight_decay=weight_decay)
-    d_opt = RMSprop(d.parameters(), lr=1e-4, weight_decay=weight_decay)
+    d_opt = RMSprop(d.parameters(), lr=1e-3 if weight_decay == 0 else 1e-4, weight_decay=weight_decay)
     bce = nn.BCELoss()
     scheduler = torch.optim.lr_scheduler.LinearLR(e_opt, start_factor=0.1, total_iters=num_epochs)
 
