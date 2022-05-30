@@ -98,7 +98,7 @@ class SCM():
             X[:, i] = outs.flatten()
         return X
 
-    def make_dataset(self, samples_per_intervention: int) -> np.ndarray:
+    def make_dataset(self, samples_per_intervention: int) -> (np.ndarray, np.ndarray, np.ndarray):
         """
         Constructs a dataset containing samples from all interventional
         distributions.
@@ -108,9 +108,12 @@ class SCM():
             interventional distribution
 
         Returns:
-            A N*samples_per_intervention x 2N+1 matrix. The last N+1 entries of
-            each row comprise a one-hot vector indicating from which
-            distribution the samples were drawn.
+            An N*samples_per_intervention x 2N+1 matrix as well as a vector of
+            means and standard deviations of intervention values after
+            normalization (used for mimicking interventions in the NCM). The
+            last N+1 entries of each row in the matrix of samples comprise a
+            one-hot vector indicating from which distribution the samples were
+            drawn.
         """
         X = np.zeros((0, 2*self.num_nodes+1))
         for do in range(-1, self.num_nodes):
@@ -119,5 +122,16 @@ class SCM():
             onehot[:, do] = 1
             X_do = np.concatenate((X_do, onehot), axis=1)
             X = np.concatenate((X, X_do))
+        means = np.mean(X[:, :self.num_nodes], axis=0)
+        stds = np.std(X[:, :self.num_nodes], axis=0)
+
+        X[:, :self.num_nodes] = (X[:, :self.num_nodes] - means) / stds
+
+        means, stds = [], []
+        for i in range(self.num_nodes):
+            intervened_samples = X[X[:, self.num_nodes+i] == 1]
+            means.append(np.mean(intervened_samples[:, i]))
+            stds.append(np.std(intervened_samples[:, i]))
         np.random.shuffle(X)
-        return X
+        
+        return X, means, stds
