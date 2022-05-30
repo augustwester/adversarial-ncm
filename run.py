@@ -81,6 +81,7 @@ def run(graph_type: GraphType,
     return g, scm, shd, g_losses, d_losses, p_hist, X.numpy()
 
 def save_loss_plot(graph_type: GraphType,
+                   fn_type: FnType,
                    g_losses: list,
                    d_losses: list,
                    p_hist: list,
@@ -89,7 +90,8 @@ def save_loss_plot(graph_type: GraphType,
     Plot losses of generator (NCM) and discriminator and save to disk.
 
     Args:
-        graph_name: Name of the graph (used as title for the plot)
+        graph_type: Type of the graph (used for generating the title of the plot)
+        fn_type: Function type of SCM (used for generating the title of the plot)
         g_losses: A list of generator losses throughout training
         d_losses: A list of discriminator losses throughout training
         p_hist: A list of edge beliefs during training
@@ -104,16 +106,16 @@ def save_loss_plot(graph_type: GraphType,
     ax[0].plot(d_losses, label="d_loss")
     ax[0].legend()
 
-    ax[1].set_title(graph_name)
+    ax[1].set_title(graph_name + " (" + fn_type.name.lower() + ")")
     ax[1].set_xlabel("Epochs")
     ax[1].set_ylabel(r"$\sigma(\gamma_{ij})$")
 
     A = make_graph(graph_type, N)
     for r in range(N):
         for c in range(N):
-            if r == c or A[r,c] == 0: continue
+            if A[r,c] == 0: continue
             ax[1].plot(p_hist[r*N+c], label=f"x{r+1}->x{c+1}")
-    ax[1].legend()
+    ax[1].legend(loc=2)
 
     fig.tight_layout()
     fig.savefig(output_dir + "plots.png")
@@ -208,5 +210,5 @@ if __name__ == "__main__":
     os.makedirs(output_dir)
 
     save_txt(shd, args, output_dir)
-    save_loss_plot(graph_type, g_losses, d_losses, p_hist, output_dir)
+    save_loss_plot(graph_type, fn_type, g_losses, d_losses, p_hist, output_dir)
     save_samples_plot(g, X, output_dir)
