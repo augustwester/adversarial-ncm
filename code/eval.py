@@ -42,7 +42,7 @@ def evaluate(graph_type: GraphType, fn_type: FnType, num_nodes: int, num_epochs:
         shds.append(shd)
         output_dir = "/".join([container_dir, str(i+1)]) + "/"
         os.makedirs(output_dir)
-        save_loss_plot(graph_type, g_losses, d_losses, p_hist, output_dir)
+        save_loss_plot(graph_type, fn_type, g_losses, d_losses, p_hist, output_dir)
         txt = open(output_dir + "/info.txt", "w")
         txt.write(
             f"""
@@ -83,12 +83,12 @@ if __name__ == "__main__":
               GraphType.ER1,
               GraphType.ER2,
               GraphType.FULL]
-    nodes = [4, 6, 8, 10]
+    nodes = [2, 4, 6, 8, 10]
 
     for num_nodes in nodes:
         ps = []
         for graph in graphs:
-            if num_nodes < 3 and graph is GraphType.ER1: continue
+            if num_nodes == 2 and graph is not GraphType.CHAIN: continue
             if num_nodes < 5 and graph is GraphType.ER2: continue
             ps.append(Process(target=evaluate, args=(graph, fn_type, num_nodes, num_epochs, batch_size)))
         for p in ps: p.start()
