@@ -13,7 +13,9 @@ def train(X: Tensor,
           batch_size: int,
           num_epochs: int,
           early_stopping=True,
-          threshold=0.4):
+          threshold=0.2,
+          weight_decay=0.0,
+          verbose=False):
     """
     Trains the NCM and matrix of edge beliefs represented by the generator.
 
@@ -25,6 +27,8 @@ def train(X: Tensor,
         num_epochs: Number of epochs to train for
         early_stopping: Whether or not to stop training once convergence is detected
         threshold: The threshold value by which an edge is included in the final prediction
+        weight_decay: Coefficient on weight decay (L2 regularization) on the parameters of the model's MLPs
+        verbose: If set to true, the current matrix of edge beliefs will be printed every 10 epochs. Default: False.
 
     Returns:
         The predicted adjacency matrix, a list of recorded losses for the
@@ -32,8 +36,8 @@ def train(X: Tensor,
         throughout training.
     """
     e_opt = RMSprop(g.edge_beliefs.parameters(), lr=5e-3)
-    g_opt = RMSprop(g.ncm.parameters(), lr=1e-3)
-    d_opt = RMSprop(d.parameters(), lr=1e-3)
+    n_opt = RMSprop(g.ncm.parameters(), lr=1e-3, weight_decay=weight_decay)
+    d_opt = RMSprop(d.parameters(), lr=1e-4, weight_decay=weight_decay)
     bce = nn.BCELoss()
     scheduler = torch.optim.lr_scheduler.LinearLR(e_opt, start_factor=0.1, total_iters=num_epochs)
 
@@ -85,7 +89,7 @@ def train(X: Tensor,
         lambda_e = max(0.1 - (progress * 0.1), 0.01)
         lambda_dag = 0.1*progress
 
-        run_epoch(X, 0, 0, g_opt, d_opt)
+        run_epoch(X, 0, 0, n_opt, d_opt)
         run_epoch(X, lambda_e, lambda_dag, e_opt, d_opt)
         scheduler.step()
 
@@ -93,6 +97,9 @@ def train(X: Tensor,
             for c in range(N):
                 belief = torch.sigmoid(g.edge_beliefs.P.T[r,c]).item()
                 P_hist[r*N+c].append(belief)
+
+        if verbose and i % 10 == 0:
+            print(np.around(g.edge_beliefs.edge_beliefs.detach().numpy(), decimals=3))
 
         if early_stopping:
             A = g.edge_beliefs.edge_beliefs
