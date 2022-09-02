@@ -1,6 +1,6 @@
 ![architecture](assets/architecture.png)
 
-The code contains an implementation of the causal discovery method proposed as part of my thesis project. It allows you to train a generative model known as a **neural causal model (NCM)** using adversarial training. The NCM is backed by a **soft adjacency matrix** of edge beliefs, which (ideally) converge to the edges of the true causal graph underlying the dataset on which the model is trained.
+This code contains an implementation of the causal discovery method proposed as part of my thesis project. It allows you to train a generative model known as a **neural causal model (NCM)** using adversarial training. The NCM is backed by a **soft adjacency matrix** of edge beliefs, which (ideally) converge to the edges of the true causal graph underlying the dataset on which the model is trained.
 
 The model can be run from the command line like so:
 
